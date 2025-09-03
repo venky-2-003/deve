@@ -40,7 +40,7 @@ pipeline {
 
         stage('Run Container') {
             steps {
-                sh "docker run -d --name custom-container -p 8080:8080 ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                sh "docker run -d --name custom-container -p 8066:8080 ${DOCKER_IMAGE}:${DOCKER_TAG}"
             }
         }
     }
