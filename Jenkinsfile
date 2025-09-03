@@ -2,45 +2,43 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = lavetivenkatesh/custom-app"
+        DOCKER_IMAGE = "lavetivenkatesh/custom-app"
         DOCKER_TAG = "latest"
+        CONTAINER_NAME = "custom-container"
+        DOCKER_CREDENTIALS = "dockerhub-creds"
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/venky-2-003/your-own-project.git'
-            }
-        }
-
-        stage('Build Maven Project') {
-            steps {
-                sh 'mvn clean package -DskipTests'
+                git branch: 'main', url: 'https://github.com/venky-2-003/deve.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
+                script {
+                    docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}")
+                }
             }
         }
 
-        stage('Login & Push Docker Image') {
+        stage('Push Docker Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
-                                                 usernameVariable: 'DOCKER_USER',
-                                                 passwordVariable: 'DOCKER_PASS')]) {
-                    sh """
-                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                    docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
-                    """
+                script {
+                    docker.withRegistry('', "${DOCKER_CREDENTIALS}") {
+                        docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}").push()
+                    }
                 }
             }
         }
 
         stage('Run Container') {
             steps {
-                sh "docker run -d --name custom-container -p 8066:8080 ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                sh """
+                    docker rm -f ${CONTAINER_NAME} || true
+                    docker run -d --name ${CONTAINER_NAME} -p 8066:80 ${DOCKER_IMAGE}:${DOCKER_TAG}
+                """
             }
         }
     }
